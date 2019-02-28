@@ -22,6 +22,7 @@ allprojects {
         flatDir {
             dirs project(':gsbarcodescannerhelper').file('libs')
         }
+        maven { url 'https://jitpack.io' }
     }
 }
 
