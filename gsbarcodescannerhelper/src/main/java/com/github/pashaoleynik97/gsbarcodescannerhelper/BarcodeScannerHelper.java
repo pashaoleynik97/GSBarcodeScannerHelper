@@ -11,6 +11,7 @@ import android.util.Log;
 import com.generalscan.scannersdk.core.basic.interfaces.CommunicateListener;
 import com.generalscan.scannersdk.core.basic.interfaces.IConnectSession;
 import com.generalscan.scannersdk.core.basic.interfaces.SessionListener;
+import com.generalscan.scannersdk.core.scannercommand.command.functional.SendWakeUp;
 import com.generalscan.scannersdk.core.scannercommand.command.read.ReadBattery;
 import com.generalscan.scannersdk.core.session.bluetooth.connect.BluetoothConnectSession;
 
@@ -36,7 +37,8 @@ public class BarcodeScannerHelper {
     private static BluetoothDevice device;
 
     private Handler handler;
-    private Runnable batteryRequest;
+    private Runnable batteryHighRequest;
+    private Runnable batteryLowRequest;
     private boolean batteryRequestsScheduled = false;
     public static final long DEFAULT_BATTERY_UPD_INTERVAL = 15 * 1000;
     private long batteryRequestInterval = DEFAULT_BATTERY_UPD_INTERVAL;
@@ -51,6 +53,7 @@ public class BarcodeScannerHelper {
 
     /**
      * Call this method in your {@link android.app.Application} class
+     *
      * @param context application context
      * @param appName application name
      * @throws BarcodeScannerHelperException possible exception (avoiding of instance duplicating)
@@ -65,14 +68,17 @@ public class BarcodeScannerHelper {
 
     /**
      * This method checks if instance of {@link BarcodeScannerHelper} exists
+     *
      * @throws BarcodeScannerHelperException exception (if instance is null)
      */
     private static void checkInstance() throws BarcodeScannerHelperException {
-        if (instance == null) throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.NOT_INITIALIZED);
+        if (instance == null)
+            throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.NOT_INITIALIZED);
     }
 
     /**
      * Returns instance of {@link BarcodeScannerHelper}.
+     *
      * @return {@link BarcodeScannerHelper} instance
      * @throws BarcodeScannerHelperException exception (if instance is null)
      */
@@ -84,20 +90,24 @@ public class BarcodeScannerHelper {
     /**
      * This method is for establishing connection with scanner and initialization of scanner listener.
      * Notice, that you should check that {@link BluetoothDevice} device is specified in helper.
+     *
      * @param barcodeScannerListener {@link BarcodeScannerListener} listener
      * @throws BarcodeScannerHelperException exception (if device not specified or GS SDK can not start session)
      */
     public void connectScanner(final BarcodeScannerListener barcodeScannerListener) throws BarcodeScannerHelperException {
         if (logsEnabled) Log.d(LOG_TAG, "Trying to connect scanner.");
         checkInstance();
-        if (barcodeScannerListener == null) throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.NULL_LISTENER_PASSED);
+        if (barcodeScannerListener == null)
+            throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.NULL_LISTENER_PASSED);
         barcodeScannerListener.onScannerConnecting();
         mBluetoothConnectSession = new BluetoothConnectSession(context);
         mBluetoothConnectSession.setSessionListener(new SessionListener() {
             @Override
             public void onSessionReady(IConnectSession iConnectSession) {
-                if (logsEnabled) Log.d(LOG_TAG, "Session ready. Connected: " + iConnectSession.isConnected());
-                if (device == null) throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.BLUETOOTH_DEVICE_NOT_SELECTED);
+                if (logsEnabled)
+                    Log.d(LOG_TAG, "Session ready. Connected: " + iConnectSession.isConnected());
+                if (device == null)
+                    throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.BLUETOOTH_DEVICE_NOT_SELECTED);
                 mBluetoothConnectSession.setBluetoothDeviceToConnect(device);
                 mBluetoothConnectSession.connect();
             }
@@ -131,13 +141,21 @@ public class BarcodeScannerHelper {
                     String finalData = completeData.trim().replaceAll("\\n", "")
                             .trim().replaceAll("\\s", "")
                             .trim().replaceAll("\\t", "");
-                    boolean isBatteryData = finalData.startsWith("[G1066"); // battery cmd code
+                    /*
+                     * DUE TO BUGS IN GS SDK, WE NEED TO CHECK, IF DATA IS NOT A BATTERY STATE DATA
+                     * */
+                    boolean isBatteryData;
+                    isBatteryData = finalData.startsWith("[G1066") // battery cmd code (e.g. for SDK 1.0.2)
+                    ||
+                    finalData.isEmpty(); // for SDK 1.0.6
                     if (isBatteryData) {
                         /* Format: '[G1066/0000mV/00%]' */
                         String[] parsed = finalData.split("/");
-                        String voltage = parsed[1];
-                        String percentage = parsed[2].substring(0, parsed[2].length() - 1);
-                        this.onBatteryDataReceived(voltage, percentage);
+                        if (!finalData.isEmpty() && parsed.length >= 2) {
+                            String voltage = parsed[1];
+                            String percentage = parsed[2].substring(0, parsed[2].length() - 1);
+                            this.onBatteryDataReceived(voltage, percentage);
+                        }
                     } else {
                         // received barcode
                         barcodeScannerListener.onScannerReceivedData(finalData);
@@ -190,29 +208,31 @@ public class BarcodeScannerHelper {
 
             @Override
             public void onRawDataReceived(byte data) {
-                if(logsEnabled) Log.d(LOG_TAG, "RAW: " + data);
+                if (logsEnabled) Log.d(LOG_TAG, "RAW: " + data);
             }
 
             @Override
             public void onRawDataReceiveError(String errorMessage, String source) {
-                if(logsEnabled) Log.d(LOG_TAG, "Data receive error. Msg: " + errorMessage + " Source: " + source);
+                if (logsEnabled)
+                    Log.d(LOG_TAG, "Data receive error. Msg: " + errorMessage + " Source: " + source);
             }
 
             @Override
             public void onDataReceived(String data) {
                 if (!rProcessStarted) startReceiving();
                 buildNext(data);
-                if(logsEnabled) Log.d(LOG_TAG, "Data (string): " + data);
+                if (logsEnabled) Log.d(LOG_TAG, "Data (string): " + data);
             }
 
             @Override
             public void onCommandCallback(String name, String data) {
-                if(logsEnabled) Log.d(LOG_TAG, "Cmd callback. Cmd name: " + name + " Data: " + data);
+                if (logsEnabled)
+                    Log.d(LOG_TAG, "Cmd callback. Cmd name: " + name + " Data: " + data);
             }
 
             @Override
             public void onCommandNoResponse(String errorMessage) {
-                if(logsEnabled) Log.d(LOG_TAG, "Cmd no response. Error: " + errorMessage);
+                if (logsEnabled) Log.d(LOG_TAG, "Cmd no response. Error: " + errorMessage);
             }
 
             @Override
@@ -233,9 +253,10 @@ public class BarcodeScannerHelper {
         checkInstance();
         if (mBluetoothConnectSession != null) mBluetoothConnectSession.endSession();
         batteryRequestsScheduled = false;
-        if (batteryRequest != null) {
+        if (batteryHighRequest != null) {
             try {
-                handler.removeCallbacks(batteryRequest);
+                handler.removeCallbacks(batteryHighRequest);
+                handler.removeCallbacks(batteryLowRequest);
             } catch (Exception ex) {
                 if (logsEnabled) Log.e(LOG_TAG, "Error", ex);
             }
@@ -278,23 +299,34 @@ public class BarcodeScannerHelper {
     }
 
     public void scheduleBatteryStateRequests(final long interval) {
-        this.batteryRequestInterval = interval;
+        this.batteryRequestInterval = interval >= 1000 ? interval : 1000;
         batteryRequestsScheduled = true;
         checkInstance();
-        batteryRequest = new Runnable() {
+        batteryHighRequest = new Runnable() {
             @Override
             public void run() {
                 requestBatteryState();
-                if (batteryRequestsScheduled) handler.postDelayed(batteryRequest, batteryRequestInterval);
+                if (batteryRequestsScheduled)
+                    handler.postDelayed(batteryHighRequest, batteryRequestInterval);
             }
         };
-        handler.post(batteryRequest);
+        batteryLowRequest = new Runnable() {
+            @Override
+            public void run() {
+                ReadBattery rState = new ReadBattery(context);
+                if (mBluetoothConnectSession != null)
+                    mBluetoothConnectSession.sendData(rState.getCommandText());
+            }
+        };
+        handler.post(batteryHighRequest);
     }
 
     public void requestBatteryState() {
         checkInstance();
-        ReadBattery rState = new ReadBattery(context);
-        if (mBluetoothConnectSession != null) mBluetoothConnectSession.sendData(rState.getCommandText());
+        SendWakeUp wake = new SendWakeUp(context);
+        if (mBluetoothConnectSession != null)
+            mBluetoothConnectSession.sendData(wake.getCommandText());
+        handler.postDelayed(batteryLowRequest, 250);
     }
 
     public boolean isBluetoothDeviceSpecified() {
