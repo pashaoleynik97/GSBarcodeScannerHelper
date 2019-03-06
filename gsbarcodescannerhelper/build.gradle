@@ -6,8 +6,8 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 6
-        versionName "0.1.6"
+        versionCode 7
+        versionName "0.1.7"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
@@ -25,7 +25,7 @@ publish {
 
     def groupProjectID = 'com.github.pashaoleynik97'
     def artifactProjectID = 'gsbarcodescannerhelper'
-    def publishVersionID = '0.1.6'
+    def publishVersionID = '0.1.7'
 
     userOrg = 'pashaoleynik97'
     repoName = 'GSBarcodeScannerHelper'
@@ -33,7 +33,7 @@ publish {
     artifactId = artifactProjectID
     publishVersion = publishVersionID
     desc = 'Simple library that helps to use GeneralScan SDK (painless callbacks and initialization).'
-    website = 'https://github.com/pashaoleynik97/GSBarcodeScannerHelper.git'
+    website = 'https://github.com/pashaoleynik97/GSBarcodeScannerHelper'
 
 }
 
