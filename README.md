@@ -9,6 +9,8 @@ This library fixes some terrible bugs from original GeneralScan SDK and allows y
 
 ## Adding to project
 
+### Gradle
+
 **Add it in your root build.gradle at the end of repositories:**
 
 ```
@@ -28,6 +30,18 @@ dependencies {
 }
 ```
 *Note: raplace **Tag** with actual library version.*
+
+**Sorry, but you temporary can not add this library as a dependency, because you will get an errors. Please, use `aar` package instead.**
+
+*Please, contact me if you know how to fix issue described [here](https://stackoverflow.com/questions/54928706/error-in-library-built-with-jitpack-unable-to-resolve-dependency-for-appdebu).*
+
+### AAR (Import module)
+
+First, download aar package: [here](https://github.com/pashaoleynik97/GSBarcodeScannerHelper/tree/master/gsbarcodescannerhelper/releases-aar)
+
+1) In ***Android Studio:*** *File -> New -> New Module... -> Import .JAR/.AAR Package*
+2) *File -> Project structure... -> Select app module and go to Dependencies tab -> click '+' -> Module dependency -> Select 'gsbarcodescannerhelper'*
+3) Apply changes and sync project
 
 ## Using library
 
