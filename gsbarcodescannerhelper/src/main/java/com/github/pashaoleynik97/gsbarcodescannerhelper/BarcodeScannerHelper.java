@@ -92,7 +92,7 @@ public class BarcodeScannerHelper {
      * Notice, that you should check that {@link BluetoothDevice} device is specified in helper.
      *
      * @param barcodeScannerListener {@link BarcodeScannerListener} listener
-     * @throws BarcodeScannerHelperException exception (if device not specified or GS SDK can not start session)
+     * @throws BarcodeScannerHelperException exception (if device not specified)
      */
     public void connectScanner(final BarcodeScannerListener barcodeScannerListener) throws BarcodeScannerHelperException {
         if (logsEnabled) Log.d(LOG_TAG, "Trying to connect scanner.");
@@ -115,7 +115,8 @@ public class BarcodeScannerHelper {
             @Override
             public void onSessionStartTimeOut(IConnectSession iConnectSession) {
                 if (logsEnabled) Log.e(LOG_TAG, "Session start timed out!");
-                throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.CAN_NOT_START_SESSION);
+                barcodeScannerListener.onScannerFailedToConnect("Can not start session.");
+                /*throw new BarcodeScannerHelperException(BarcodeScannerHelperException.Err.CAN_NOT_START_SESSION);*/
             }
         });
         mBluetoothConnectSession.startSession();
@@ -146,8 +147,8 @@ public class BarcodeScannerHelper {
                      * */
                     boolean isBatteryData;
                     isBatteryData = finalData.startsWith("[G1066") // battery cmd code (e.g. for SDK 1.0.2)
-                    ||
-                    finalData.isEmpty(); // for SDK 1.0.6
+                            ||
+                            finalData.isEmpty(); // for SDK 1.0.6
                     if (isBatteryData) {
                         /* Format: '[G1066/0000mV/00%]' */
                         String[] parsed = finalData.split("/");
@@ -331,6 +332,11 @@ public class BarcodeScannerHelper {
 
     public boolean isBluetoothDeviceSpecified() {
         return device != null;
+    }
+
+    public String getBluetoothDeviceAddress() {
+        if (device == null) return null;
+        return device.getAddress();
     }
 
     public static void setLogsEnabled(boolean logsEnabled) {
