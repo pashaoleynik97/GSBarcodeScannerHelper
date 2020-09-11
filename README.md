@@ -1,6 +1,8 @@
 # GSBarcodeScannerHelper
 Simple library that helps to use GeneralScan SDK (painless callbacks and initialization).
 
+**The library is no longer supported**
+
 [![](https://jitpack.io/v/pashaoleynik97/GSBarcodeScannerHelper.svg)](https://jitpack.io/#pashaoleynik97/GSBarcodeScannerHelper)
 
 ## Summary
